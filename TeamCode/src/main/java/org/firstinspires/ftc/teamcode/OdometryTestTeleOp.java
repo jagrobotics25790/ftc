@@ -25,6 +25,7 @@ import org.firstinspires.ftc.teamcode.pedro.Constants;
  *   Left stick       drive (forward / back / strafe)
  *   Right stick X    turn
  *   Right bumper     hold for slow mode
+ *   Right trigger    spin the launcher: light press 3000 RPM, full press 6000 RPM, release off
  *   D-pad            creep straight forward / back / left / right at low power
  *   Y                toggle robot-centric / field-centric
  *   A                reset pose to (0, 0, 0) and set the mark there
@@ -38,6 +39,7 @@ public class OdometryTestTeleOp extends OpMode {
 
     private Drivetrain drivetrain;
     private Localizer localizer;
+    private Launcher launcher;
 
     private final ElapsedTime loopTimer = new ElapsedTime();
     private boolean fieldCentric = false;
@@ -53,6 +55,7 @@ public class OdometryTestTeleOp extends OpMode {
         drivetrain = Constants.drivetrain(hardwareMap);
         localizer = Constants.localizer(hardwareMap);
         localizer.setPose(Pose.zero());
+        launcher = new Launcher(hardwareMap);
 
         telemetry.addLine("Keep the robot still while the localizer initializes.");
         telemetry.update();
@@ -85,6 +88,7 @@ public class OdometryTestTeleOp extends OpMode {
 
         handleButtons(pose);
         drivetrain.drive(drivePowers(pose), true);
+        launcher.setFromTrigger(gamepad1.right_trigger);
 
         telemetry.addData("Drive", "%s%s",
                 fieldCentric ? "FIELD-centric" : "ROBOT-centric",
@@ -95,11 +99,13 @@ public class OdometryTestTeleOp extends OpMode {
         Velocity velocity = localizer.velocity();
         telemetry.addData("Velocity", "vx %.1f  vy %.1f in/s  ω %.1f °/s",
                 velocity.vx, velocity.vy, Math.toDegrees(velocity.omega));
+        telemetry.addData("Launcher", "target %.0f  actual %.0f RPM",
+                launcher.getTargetRpm(), launcher.getRpm());
         telemetry.addData("Loop", "%.0f Hz", 1.0 / Math.max(loopTimer.seconds(), 1e-6));
         loopTimer.reset();
 
         telemetry.addLine();
-        telemetry.addLine("Y: field/robot centric | RB: slow | D-pad: creep");
+        telemetry.addLine("Y: field/robot centric | RB: slow | D-pad: creep | RT: launcher");
         telemetry.addLine("A: reset pose | B: set mark | X: reset heading");
         telemetry.update();
     }
@@ -107,6 +113,7 @@ public class OdometryTestTeleOp extends OpMode {
     @Override
     public void stop() {
         if (drivetrain != null) drivetrain.stop();
+        if (launcher != null) launcher.stop();
     }
 
     private void handleButtons(Pose pose) {
